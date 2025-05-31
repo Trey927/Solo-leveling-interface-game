@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#000000" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Solo Leveling Interface</title>
+<style>
+  /* Style général sombre inspiré Solo Leveling */
+  body {
+    background-color: #0b101a;
+    color: #00ffff;
+    font-family: 'Courier New', monospace;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  header {
+    background: #001520;
+    padding: 15px;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    border-bottom: 2px solid #00ffff;
+  }
+  main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 15px;
+    flex-grow: 1;
+  }
+  section {
+    background: #111a33;
+    border: 2px solid #00ffff;
+    border-radius: 10px;
+    padding: 15px;
+    flex: 1 1 300px;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+  }
+  h2 {
+    margin-top: 0;
+    color: #00eaea;
+    border-bottom: 1px solid #00ffff;
+    padding-bottom: 5px;
+  }
+  .bar {
+    background: #001520;
+    border: 1px solid #00ffff;
+    border-radius: 10px;
+    height: 22px;
+    overflow: hidden;
+    margin: 8px 0 15px 0;
+  }
+  .bar-fill {
+    height: 100%;
+    background: #00ffff;
+    width: 0%;
+    transition: width 0.5s ease;
+  }
+  button {
+    background: #002b44;
+    border: 1px solid #00ffff;
+    color: #00ffff;
+    font-weight: bold;
+    padding: 8px 12px;
+    margin-top: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  button:hover {
+    background: #00ffff;
+    color: #001522;
+  }
+  label {
+    cursor: pointer;
+  }
+  ul {
+    list-style-type: none;
+    padding-left: 0;
+    max-height: 180px;
+    overflow-y: auto;
+    margin: 0;
+  }
+  li {
+    margin-bottom: 8px;
+  }
+  .smalltext {
+    font-size: 0.85rem;
+    color: #009999;
+  }
+  .inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .inventory-list, .quest-list, .donjon-list, .shop-list {
+    flex-grow: 1;
+    overflow-y: auto;
+  }
+  .characteristic {
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0;
+  }
+  .class-choice {
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>Solo Leveling - Interface RPG</header>
+
+<main>
+  <!-- Section Caractéristiques -->
+  <section id="caracteristiques">
+    <h2>Caractéristiques</h2>
+    <div id="niveauDiv">Niveau : <span id="niveau">1</span> (Rang : <span id="rang">E</span>)</div>
+    <div id="xpDiv">XP : <span id="xp">0</span> / <span id="xpMax">100</span></div>
+    <div class="bar"><div id="xpBar" class="bar-fill"></div></div>
+    <div id="goldDiv">Gold : <span id="gold">0</span> 🪙</div>
+
+    <h3>Stats de base</h3>
+    <div class="characteristic"><span>Force</span><span id="force">10</span></div>
+    <div class="characteristic"><span>Endurance</span><span id="endurance">10</span></div>
+    <div class="characteristic"><span>Intelligence</span><span id="intelligence">10</span></div>
+    <div class="characteristic"><span>Agilité</span><span id="agilite">10</span></div>
+
+    <div class="class-choice" id="classChoiceDiv" style="display:none;">
+      <h3>Choisis ta classe</h3>
+      <button onclick="choisirClasse('Guerrier')">Guerrier</button>
+      <button onclick="choisirClasse('Mage')">Mage</button>
+      <button onclick="choisirClasse('Archer')">Archer</button>
+    </div>
+
+    <div id="classeActuelle" style="margin-top:10px; font-weight:bold;"></div>
+
+    <button onclick="reinitialiserNiveau()">Réinitialiser Niveau</button>
+    <button onclick="reinitialiserTout()">Réinitialiser Tout</button>
+  </section>
+
+  <!-- Section Quêtes -->
+  <section id="quetes">
+    <h2>Quêtes</h2>
+    <ul id="listeQuetes" class="quest-list">
+      <!-- Quêtes seront ajoutées ici dynamiquement -->
+    </ul>
+  </section>
+
+  <!-- Section Donjons -->
+  <section id="donjons">
+    <h2>Donjons</h2>
+    <ul id="listeDonjons" class="donjon-list">
+      <!-- Donjons seront ajoutés ici dynamiquement -->
+    </ul>
+    <div id="donjonProgressDiv" style="margin-top:10px;">
+      <div id="donjonStatus"></div>
+      <div class="bar"><div id="donjonBar" class="bar-fill"></div></div>
+      <button id="avancerDonjonBtn" onclick="avancerDonjon()" disabled>Avancer dans le donjon</button>
+      <button id="terminerDonjonBtn" onclick="terminerDonjon()" disabled>Terminer donjon</button>
+    </div>
+  </section>
+
+  <!-- Section Magasin -->
+  <section id="magasin">
+    <h2>Magasin</h2>
+    <ul id="listeObjets" class="shop-list">
+      <!-- Objets magasin dynamiques -->
+    </ul>
+    <h3>Inventaire</h3>
+    <ul id="inventaire" class="inventory-list">
+      <!-- Inventaire affiché ici -->
+    </ul>
+  </section>
+</main>
+
+<script>
+  // --- Variables & données de base ---
+
+  // Rangs d'après niveau
+  const rangs = ["E", "D", "C", "B", "A", "S"];
+  // Caractéristiques de départ
+  let stats = {
+    niveau: 1,
+    xp: 0,
+    xpMax: 100,
+    gold: 0,
+    force: 10,
+    endurance: 10,
+    intelligence: 10,
+    agilite: 10,
+    classe: null,
+    inventaire: [],
+    effets: {
+      acceleration: 0, // nb de "avancées" donjon accélérées
+      boostXP: 0, // nb de "avancées" donjon avec boost XP
+    }
+  };
+
+  // Quêtes quotidiennes
+  const quetes = [
+    { id: 1, texte: "Courir 10 minutes", xp: 30, difficulte: "facile", terminee: false },
+    { id: 2, texte: "Faire 30 pompes", xp: 30, difficulte: "facile", terminee: false },
+    { id: 3, texte: "Étudier 20 minutes", xp: 40, difficulte: "moyenne", terminee: false },
+    { id: 4, texte: "Faire 50 squats", xp: 50, difficulte: "moyenne", terminee: false },
+    { id: 5, texte: "S'entraîner 1h", xp: 70, difficulte: "difficile", terminee: false }
+  ];
+
+  // Donjons disponibles
+  const donjons = [
+    { id: 1, nom: "Forêt des Ombres", rang: "E", niveauRequis: 1, xpGain: 50, goldGain: 20 },
+    { id: 2, nom: "Caverne de Glace", rang: "D", niveauRequis: 5, xpGain: 120, goldGain: 50 },
+    { id: 3, nom: "Temple Interdit", rang: "C", niveauRequis: 10, xpGain: 250, goldGain: 120 },
+    { id: 4, nom: "Forteresse Sombre", rang: "B", niveauRequis: 15, xpGain: 400, goldGain: 200 },
+    { id: 5, nom: "Nid du Dragon", rang: "A", niveauRequis: 20, xpGain: 700, goldGain: 400 },
+    { id: 6, nom: "Monde des Ténèbres", rang: "S", niveauRequis: 30, xpGain: 1500, goldGain: 900 }
+  ];
+
+  // Objets en magasin
+  const objetsMagasin = [
+    { id: 1, nom: "Potion d'accélération", prix: 100, description: "Double la vitesse d'avancée dans le donjon pendant 3 fois.", effet: function() {
+      stats.effets.acceleration += 3;
+      alert("Potion d'accélération activée : 3 avancées accélérées dans les donjons.");
+    }},
+    { id: 2, nom: "Amulette d'XP", prix: 200, description: "Augmente de 50% l'XP gagné pendant 5 avancées en donjon.", effet: function() {
+      stats.effets.boostXP += 5;
+      alert("Amulette d'XP activée : 50% d'XP bonus pour 5 avancées en donjon.");
+    }},
+    { id: 3, nom: "Bouclier de force", prix: 300, description: "Augmente la force de +5 pour les combats (effet permanent).", effet: function() {
+      stats.force += 5;
+      alert("Bouclier de force : +5 force permanente.");
+      majCarac();
+    }}
+  ];
+
+  // Donjon en cours
+  let donjonActuel = null;
+  let progressionDonjon = 0; // 0 à 100%
+
+  // --- Fonctions d'affichage ---
+
+  // Mets à jour affichage stats (caracs + or + xp)
+  function majCarac(){
+    document.getElementById("niveau").textContent = stats.niveau;
+    // Calcul rang en fonction du niveau (un rang tous les 5 niveaux)
+    const rangIndex = Math.min(Math.floor((stats.niveau - 1)/5), rangs.length - 1);
+    document.getElementById("rang").textContent = rangs[rangIndex];
+    document.getElementById("xp").textContent = stats.xp;
+    document.getElementById("xpMax").textContent = stats.xpMax;
+    document.getElementById("xpBar").style.width = (stats.xp/stats.xpMax)*100 + "%";
+    document.getElementById("gold").textContent = stats.gold;
+    document.getElementById("force").textContent = stats.force;
+    document.getElementById("endurance").textContent = stats.endurance;
+    document.getElementById("intelligence").textContent = stats.intelligence;
+    document.getElementById("agilite").textContent = stats.agilite;
+    // Affiche classe si choisie
+    const classeDiv = document.getElementById("classeActuelle");
+    if(stats.classe) {
+      classeDiv.textContent = "Classe actuelle : " + stats.classe;
+      document.getElementById("classChoiceDiv").style.display = "none";
+    } else if(stats.niveau >= 10){
+      // Montre le choix de classe si niveau 10 ou plus et pas encore choisi
+      document.getElementById("classChoiceDiv").style.display = "block";
+      classeDiv.textContent = "";
+    } else {
+      classeDiv.textContent = "";
+      document.getElementById("classChoiceDiv").style.display = "none";
+    }
+  }
+
+  // Affiche les quêtes dans la section
+  function afficherQuetes(){
+    const ul = document.getElementById("listeQuetes");
+    ul.innerHTML = "";
+    quetes.forEach(q => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <label>
+          <input type="checkbox" id="q${q.id}" ${q.terminee ? "checked disabled" : ""} onchange="terminerQuete(${q.id})"/>
+          ${q.texte} <span class="smalltext">(+${q.xp} XP)</span>
+        </label>
+      `;
+      ul.appendChild(li);
+    });
+  }
+
+  // Affiche les donjons
+  function afficherDonjons(){
+    const ul = document.getElementById("listeDonjons");
+    ul.innerHTML = "";
+    donjons.forEach(d => {
+      const li = document.createElement("li");
+      const dispo = stats.niveau >= d.niveauRequis;
+      li.innerHTML = `
+        <div class="inline">
+          <span><strong>${d.nom}</strong> [Rang ${d.rang}] - Niveau Requis: ${d.niveauRequis}</span>
+          <button ${dispo ? "" : "disabled"} onclick="entrerDonjon(${d.id})">Entrer</button>
+        </div>
+      `;
+      ul.appendChild(li);
+    });
+    majDonjonProgress();
+  }
+
+  // Affiche les objets du magasin
+  function afficherMagasin(){
+    const ul = document.getElementById("listeObjets");
+    ul.innerHTML = "";
+    objetsMagasin.forEach(o => {
+      ul.innerHTML += `
+        <li class="inline">
+          <span><strong>${o.nom}</strong> - ${o.prix} 🪙<br><small>${o.description}</small></span>
+          <button onclick="acheterObjet(${o.id})">Acheter</button>
+        </li>
+      `;
+    });
+    afficherInventaire();
+  }
+
+  // Affiche inventaire
+  function afficherInventaire(){
+    const ul = document.getElementById("inventaire");
+    ul.innerHTML = "";
+    if(stats.inventaire.length === 0){
+      ul.innerHTML = "<li><em>Vide</em></li>";
+    } else {
+      stats.inventaire.forEach(item => {
+        ul.innerHTML += `<li>${item}</li>`;
+      });
+    }
+  }
+
+  // --- Actions utilisateurs ---
+
+  // Terminer une quête
+  function terminerQuete(id){
+    const q = quetes.find(q => q.id === id);
+    if(!q || q.terminee) return;
+    q.terminee = true;
+
+    // Calcul XP avec boostXP si actif
+    let xpGagne = q.xp;
+    if(stats.effets.boostXP > 0){
+      xpGagne += Math.floor(q.xp * 0.5);
+      stats.effets.boostXP--;
+      alert("Bonus XP activé ! +50% XP pour cette quête.");
+    }
+    ajouterXP(xpGagne);
+    afficherQuetes();
+  }
+
+  // Ajouter XP + gestion montée de niveau
+  function ajouterXP(valeur){
+    stats.xp += valeur;
+    while(stats.xp >= stats.xpMax){
+      stats.xp -= stats.xpMax;
+      stats.niveau++;
+      stats.xpMax = Math.floor(stats.xpMax * 1.2);
+      alert("Niveau UP ! Tu es maintenant niveau " + stats.niveau);
+      // Bonus stats quand tu montes de niveau (exemple simple)
+      stats.force += 2;
+      stats.endurance += 2;
+      stats.intelligence += 1;
+      stats.agilite += 1;
+    }
+    majCarac();
+  }
+
+  // Entrer dans un donjon
+  function entrerDonjon(id){
+    if(donjonActuel !== null){
+      alert("Tu es déjà dans un donjon !");
+      return;
+    }
+    const donjon = donjons.find(d => d.id === id);
+    if(!donjon) return;
+    if(stats.niveau < donjon.niveauRequis){
+      alert("Niveau trop bas pour ce donjon !");
+      return;
+    }
+    donjonActuel = donjon;
+    progressionDonjon = 0;
+    majDonjonProgress();
+    alert("Tu es entré dans le donjon : " + donjon.nom);
+    document.getElementById("avancerDonjonBtn").disabled = false;
+    document.getElementById("terminerDonjonBtn").disabled = true;
+  }
+
+  // Avancer dans le donjon
+  function avancerDonjon(){
+    if(!donjonActuel) return;
+    let avance = 10;
+    if(stats.effets.acceleration > 0){
+      avance *= 2; // double l'avancement
+      stats.effets.acceleration--;
+      alert("Avancement accéléré !");
+    }
+    progressionDonjon += avance;
+    if(progressionDonjon >= 100){
+      progressionDonjon = 100;
+      document.getElementById("avancerDonjonBtn").disabled = true;
+      document.getElementById("terminerDonjonBtn").disabled = false;
+      alert("Donjon prêt à être terminé !");
+    }
+    majDonjonProgress();
+  }
+
+  // Terminer donjon
+  function terminerDonjon(){
+    if(!donjonActuel) return;
+    // Calcul XP avec boostXP si actif
+    let xpGagne = donjonActuel.xpGain;
+    if(stats.effets.boostXP > 0){
+      xpGagne += Math.floor(donjonActuel.xpGain * 0.5);
+      stats.effets.boostXP--;
+      alert("Bonus XP activé ! +50% XP sur ce donjon.");
+    }
+    ajouterXP(xpGagne);
+    stats.gold += donjonActuel.goldGain;
+    alert(`Donjon terminé ! XP +${xpGagne}, Gold +${donjonActuel.goldGain}`);
+    donjonActuel = null;
+    progressionDonjon = 0;
+    document.getElementById("avancerDonjonBtn").disabled = true;
+    document.getElementById("terminerDonjonBtn").disabled = true;
+    majCarac();
+    afficherDonjons();
+  }
+
+  // Mise à jour barre de progression donjon
+  function majDonjonProgress(){
+    const bar = document.getElementById("donjonBar");
+    bar.style.width = progressionDonjon + "%";
+    const status = document.getElementById("donjonStatus");
+    if(donjonActuel){
+      status.textContent = `Donjon: ${donjonActuel.nom} - Progression: ${progressionDonjon}%`;
+    } else {
+      status.textContent = "Aucun donjon en cours.";
+      document.getElementById("avancerDonjonBtn").disabled = true;
+      document.getElementById("terminerDonjonBtn").disabled = true;
+    }
+  }
+
+  // Acheter un objet magasin
+  function acheterObjet(id){
+    const obj = objetsMagasin.find(o => o.id === id);
+    if(!obj) return;
+    if(stats.gold < obj.prix){
+      alert("Pas assez d'argent !");
+      return;
+    }
+    stats.gold -= obj.prix;
+    // Effet immédiat
+    obj.effet();
+    // Ajouter à l'inventaire (pour affichage)
+    stats.inventaire.push(obj.nom);
+    majCarac();
+    afficherInventaire();
+    afficherMagasin();
+  }
+
+  // Choisir une classe à niveau 10+
+  function choisirClasse(classe){
+    if(stats.niveau < 10) {
+      alert("Niveau 10 requis pour choisir une classe.");
+      return;
+    }
+    stats.classe = classe;
+    alert("Classe choisie : " + classe);
+    // Bonus selon classe (exemple)
+    switch(classe){
+      case "Guerrier":
+        stats.force += 10;
+        stats.endurance += 5;
+        break;
+      case "Mage":
+        stats.intelligence += 15;
+        break;
+      case "Archer":
+        stats.agilite += 12;
+        break;
+    }
+    majCarac();
+  }
+
+  // Réinitialiser niveau (garde inventaire et classe)
+  function reinitialiserNiveau(){
+    if(confirm("Es-tu sûr de vouloir réinitialiser ton niveau ?")){
+      stats.niveau = 1;
+      stats.xp = 0;
+      stats.xpMax = 100;
+      stats.force = 10;
+      stats.endurance = 10;
+      stats.intelligence = 10;
+      stats.agilite = 10;
+      stats.classe = null;
+      alert("Niveau réinitialisé.");
+      majCarac();
+      afficherQuetes();
+      afficherDonjons();
+    }
+  }
+
+  // Réinitialiser tout (niveau + inventaire + or + classe)
+  function reinitialiserTout(){
+    if(confirm("Es-tu sûr de vouloir tout réinitialiser ?")){
+      stats.niveau = 1;
+      stats.xp = 0;
+      stats.xpMax = 100;
+      stats.force = 10;
+      stats.endurance = 10;
+      stats.intelligence = 10;
+      stats.agilite = 10;
+      stats.classe = null;
+      stats.gold = 0;
+      stats.inventaire = [];
+      stats.effets.acceleration = 0;
+      stats.effets.boostXP = 0;
+      alert("Tout a été réinitialisé.");
+      majCarac();
+      afficherQuetes();
+      afficherDonjons();
+      afficherMagasin();
+    }
+  }
+
+  // --- Initialisation ---
+
+  majCarac();
+  afficherQuetes();
+  afficherDonjons();
+  afficherMagasin();
+  majDonjonProgress();
+
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(() => console.log('✅ Service Worker enregistré'))
+    .catch((err) => console.error('❌ Erreur lors de l\'enregistrement du Service Worker:', err));
+}
+</script>
+
+</body>
+</html>
